@@ -53,6 +53,7 @@ interface CliArgs {
   telemetryTarget: string | undefined;
   telemetryOtlpEndpoint: string | undefined;
   telemetryLogPrompts: boolean | undefined;
+  tygent: boolean | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -121,6 +122,12 @@ async function parseArguments(): Promise<CliArgs> {
       type: 'boolean',
       description:
         'Enable or disable logging of user prompts for telemetry. Overrides settings files.',
+    })
+    .option('tygent', {
+      type: 'boolean',
+      description:
+        'Use Tygent scheduler for tool execution in non-interactive mode',
+      default: false,
     })
     .option('checkpointing', {
       alias: 'c',
@@ -245,6 +252,7 @@ export async function loadCliConfig(
     bugCommand: settings.bugCommand,
     model: argv.model!,
     extensionContextFilePaths,
+    useTygent: argv.tygent || false,
   });
 }
 

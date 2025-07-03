@@ -11,6 +11,7 @@ import {
   ToolRegistry,
   shutdownTelemetry,
   isTelemetrySdkInitialized,
+  runPromptWithTools,
 } from '@google/gemini-cli-core';
 import {
   Content,
@@ -57,6 +58,22 @@ export async function runNonInteractive(
 
   const geminiClient = config.getGeminiClient();
   const toolRegistry: ToolRegistry = await config.getToolRegistry();
+
+  if (config.isTygentEnabled()) {
+    const text = await runPromptWithTools(
+      geminiClient,
+      toolRegistry,
+      input,
+      new AbortController().signal,
+    );
+    if (text) {
+      process.stdout.write(text + '\n');
+    }
+    if (isTelemetrySdkInitialized()) {
+      await shutdownTelemetry();
+    }
+    return;
+  }
 
   const chat = await geminiClient.getChat();
   const abortController = new AbortController();
