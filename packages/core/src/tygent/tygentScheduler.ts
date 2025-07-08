@@ -31,7 +31,11 @@ export class TygentScheduler {
    * @param dependsOn Optional dependency node names.
    * @returns The created node name.
    */
-  addLLMCall(prompt: string, dependsOn: string[] = []): string {
+  addLLMCall(
+    prompt: string,
+    dependsOn: string[] = [],
+    signal: AbortSignal,
+  ): string {
     const name = `llm_${this.nodeCount++}`;
     const node = new LLMNode(name);
     node.setDependencies(dependsOn);
@@ -39,7 +43,7 @@ export class TygentScheduler {
       const resp = await this.client.generateContent(
         [{ role: 'user', parts: [{ text: prompt }] }],
         {},
-        AbortSignal.timeout(300000),
+        signal,
       );
       return resp;
     };
@@ -53,17 +57,18 @@ export class TygentScheduler {
    * @param dependsOn Optional dependency node names.
    * @returns The created node name.
    */
-  addToolCall(request: ToolCallRequestInfo, dependsOn: string[] = []): string {
+  addToolCall(
+    request: ToolCallRequestInfo,
+    dependsOn: string[] = [],
+    signal: AbortSignal,
+  ): string {
     const name = `tool_${request.callId}`;
     const tool = this.toolRegistry.getTool(request.name);
     if (!tool) {
       throw new Error(`Tool ${request.name} not found`);
     }
     const node = new ToolNode(name, async () => {
-      const result: ToolResult = await tool.execute(
-        request.args,
-        AbortSignal.timeout(300000),
-      );
+      const result: ToolResult = await tool.execute(request.args, signal);
       return result;
     });
     node.setDependencies(dependsOn);

@@ -218,7 +218,7 @@ export function useReactToolScheduler(
         tool: registry.getTool(req.name) as Tool,
       }));
       setToolCallsForDisplay(executingCalls);
-      requests.forEach((r) => tygent.addToolCall(r));
+      requests.forEach((r) => tygent.addToolCall(r, [], signal));
       const results = await tygent.run();
       const completed: CompletedToolCall[] = requests.map((req) => {
         const tool = registry.getTool(req.name) as Tool;

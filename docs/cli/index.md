@@ -26,3 +26,10 @@ Gemini CLI executes the command and prints the output to your terminal. Note tha
 ```bash
 gemini -p "What is fine tuning?"
 ```
+
+To execute tool calls in parallel you can enable the optional
+[`--tygent`](./commands.md#tygent) flag:
+
+```bash
+echo "Generate README" | gemini --tygent
+```

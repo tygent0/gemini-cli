@@ -58,13 +58,14 @@ export async function runNonInteractive(
 
   const geminiClient = config.getGeminiClient();
   const toolRegistry: ToolRegistry = await config.getToolRegistry();
+  const abortController = new AbortController();
 
   if (config.isTygentEnabled()) {
     const text = await runPromptWithTools(
       geminiClient,
       toolRegistry,
       input,
-      new AbortController().signal,
+      abortController.signal,
     );
     if (text) {
       process.stdout.write(text + '\n');
@@ -76,7 +77,6 @@ export async function runNonInteractive(
   }
 
   const chat = await geminiClient.getChat();
-  const abortController = new AbortController();
   let currentMessages: Content[] = [{ role: 'user', parts: [{ text: input }] }];
 
   try {

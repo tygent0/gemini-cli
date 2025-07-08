@@ -20,7 +20,7 @@ export async function runPromptWithTools(
   signal: AbortSignal = new AbortController().signal,
 ): Promise<string> {
   const scheduler = new TygentScheduler(client, registry);
-  const llmNode = scheduler.addLLMCall(prompt);
+  const llmNode = scheduler.addLLMCall(prompt, [], signal);
 
   // Run the initial LLM call to discover required tool invocations.
   const firstResults = (await scheduler.run())[llmNode] as GenerateContentResponse;
@@ -35,14 +35,14 @@ export async function runPromptWithTools(
       args: (fc.args ?? {}) as Record<string, unknown>,
       isClientInitiated: false,
     };
-    const nodeName = scheduler.addToolCall(request, [llmNode]);
+    const nodeName = scheduler.addToolCall(request, [llmNode], signal);
     toolNodeNames.push(nodeName);
   }
 
   let finalNode = llmNode;
   if (toolNodeNames.length) {
     // Add a follow up LLM call that depends on all tools finishing.
-    finalNode = scheduler.addLLMCall('continue', toolNodeNames);
+    finalNode = scheduler.addLLMCall('continue', toolNodeNames, signal);
   }
 
   const results = await scheduler.run();
