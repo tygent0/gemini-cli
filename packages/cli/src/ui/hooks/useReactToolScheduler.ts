@@ -21,8 +21,11 @@ import {
   ToolCall,
   Status as CoreStatus,
   EditorType,
+  TygentScheduler,
+  ToolResult,
 } from '@google/gemini-cli-core';
 import { useCallback, useState, useMemo } from 'react';
+import { Part, PartListUnion } from '@google/genai';
 import {
   HistoryItemToolGroup,
   IndividualToolCallDisplay,
@@ -62,6 +65,54 @@ export type TrackedToolCall =
   | TrackedExecutingToolCall
   | TrackedCompletedToolCall
   | TrackedCancelledToolCall;
+
+function createFunctionResponsePart(
+  callId: string,
+  toolName: string,
+  output: string,
+): Part {
+  return {
+    functionResponse: {
+      id: callId,
+      name: toolName,
+      response: { output },
+    },
+  };
+}
+
+function convertToFunctionResponse(
+  toolName: string,
+  callId: string,
+  llmContent: PartListUnion,
+): PartListUnion {
+  const contentToProcess =
+    Array.isArray(llmContent) && llmContent.length === 1
+      ? llmContent[0]
+      : llmContent;
+
+  if (typeof contentToProcess === 'string') {
+    return createFunctionResponsePart(callId, toolName, contentToProcess);
+  }
+
+  if (Array.isArray(contentToProcess)) {
+    const functionResponse = createFunctionResponsePart(
+      callId,
+      toolName,
+      'Tool execution succeeded.',
+    );
+    return [functionResponse, ...contentToProcess];
+  }
+
+  if (contentToProcess.text !== undefined) {
+    return createFunctionResponsePart(callId, toolName, contentToProcess.text);
+  }
+
+  return createFunctionResponsePart(
+    callId,
+    toolName,
+    'Tool execution succeeded.',
+  );
+}
 
 export function useReactToolScheduler(
   onComplete: (tools: CompletedToolCall[]) => void,
@@ -131,18 +182,23 @@ export function useReactToolScheduler(
     [setToolCallsForDisplay],
   );
 
+  const useTygent = config.isTygentEnabled();
+
   const scheduler = useMemo(
     () =>
-      new CoreToolScheduler({
-        toolRegistry: config.getToolRegistry(),
-        outputUpdateHandler,
-        onAllToolCallsComplete: allToolCallsCompleteHandler,
-        onToolCallsUpdate: toolCallsUpdateHandler,
-        approvalMode: config.getApprovalMode(),
-        getPreferredEditor,
-        config,
-      }),
+      useTygent
+        ? null
+        : new CoreToolScheduler({
+            toolRegistry: config.getToolRegistry(),
+            outputUpdateHandler,
+            onAllToolCallsComplete: allToolCallsCompleteHandler,
+            onToolCallsUpdate: toolCallsUpdateHandler,
+            approvalMode: config.getApprovalMode(),
+            getPreferredEditor,
+            config,
+          }),
     [
+      useTygent,
       config,
       outputUpdateHandler,
       allToolCallsCompleteHandler,
@@ -151,14 +207,57 @@ export function useReactToolScheduler(
     ],
   );
 
+  const tygentSchedule = useCallback(
+    async (requests: ToolCallRequestInfo[], signal: AbortSignal) => {
+      const registry = await config.getToolRegistry();
+      const client = config.getGeminiClient();
+      const tygent = new TygentScheduler(client, registry);
+      const executingCalls: TrackedToolCall[] = requests.map((req) => ({
+        status: 'executing',
+        request: req,
+        tool: registry.getTool(req.name) as Tool,
+      }));
+      setToolCallsForDisplay(executingCalls);
+      requests.forEach((r) => tygent.addToolCall(r, [], signal));
+      const results = await tygent.run();
+      const completed: CompletedToolCall[] = requests.map((req) => {
+        const tool = registry.getTool(req.name) as Tool;
+        const res = results[`tool_${req.callId}`] as ToolResult;
+        return {
+          status: 'success',
+          request: req,
+          tool,
+          response: {
+            callId: req.callId,
+            responseParts: convertToFunctionResponse(
+              req.name,
+              req.callId,
+              res.llmContent,
+            ),
+            resultDisplay: res.returnDisplay,
+            error: undefined,
+          },
+        } as CompletedToolCall;
+      });
+      setToolCallsForDisplay(completed as TrackedToolCall[]);
+      onComplete(completed);
+    },
+    [config, onComplete],
+  );
+
   const schedule: ScheduleFn = useCallback(
     (
       request: ToolCallRequestInfo | ToolCallRequestInfo[],
       signal: AbortSignal,
     ) => {
-      scheduler.schedule(request, signal);
+      const requests = Array.isArray(request) ? request : [request];
+      if (useTygent) {
+        void tygentSchedule(requests, signal);
+      } else {
+        scheduler?.schedule(requests, signal);
+      }
     },
-    [scheduler],
+    [scheduler, useTygent, tygentSchedule],
   );
 
   const markToolsAsSubmitted: MarkToolsAsSubmittedFn = useCallback(

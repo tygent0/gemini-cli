@@ -311,6 +311,8 @@ Arguments passed directly when running the CLI can override other configurations
   - Enables logging of prompts for telemetry. See [telemetry](../telemetry.md) for more information.
 - **`--checkpointing`**:
   - Enables [checkpointing](./commands.md#checkpointing-commands).
+- **`--tygent`**:
+  - Executes tool calls in parallel using the Tygent scheduler. See [Tygent integration](../tygent-integration.md).
 - **`--version`**:
   - Displays the version of the CLI.
 

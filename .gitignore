@@ -9,6 +9,7 @@
 # Dependency directory
 node_modules
 bower_components
+packages/cli/package-lock.json
 
 # Editors
 .idea

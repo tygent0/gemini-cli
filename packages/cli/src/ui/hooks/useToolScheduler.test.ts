@@ -50,6 +50,7 @@ const mockConfig = {
   getApprovalMode: vi.fn(() => ApprovalMode.DEFAULT),
   getUsageStatisticsEnabled: () => true,
   getDebugMode: () => false,
+  isTygentEnabled: vi.fn().mockReturnValue(false),
 };
 
 const mockTool: Tool = {
