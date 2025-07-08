@@ -44,6 +44,7 @@
     "shell-quote": "^1.8.2",
     "simple-git": "^3.28.0",
     "strip-ansi": "^7.1.0",
+    "tygent": "^0.3.0",
     "undici": "^7.10.0",
     "ws": "^8.18.0"
   },
@@ -53,6 +54,7 @@
     "@types/micromatch": "^4.0.8",
     "@types/minimatch": "^5.1.2",
     "@types/ws": "^8.5.10",
+    "@vitest/coverage-v8": "^3.1.1",
     "typescript": "^5.3.3",
     "vitest": "^3.1.1"
   },
