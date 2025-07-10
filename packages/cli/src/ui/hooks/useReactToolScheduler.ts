@@ -208,7 +208,7 @@ export function useReactToolScheduler(
   );
 
   const tygentSchedule = useCallback(
-    async (requests: ToolCallRequestInfo[], signal: AbortSignal) => {
+    async (requests: ToolCallRequestInfo[], _signal: AbortSignal) => {
       const registry = await config.getToolRegistry();
       const client = config.getGeminiClient();
       const tygent = new TygentScheduler(client, registry);

@@ -1,3 +1,9 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { randomUUID } from 'crypto';
 import {
   Config,
@@ -6,20 +12,27 @@ import {
   runPromptWithTools,
   executeToolCall,
   uiTelemetryService,
-} from './packages/core/src/index.js';
-import { ToolRegistry, ToolCallRequestInfo } from './packages/core/src/index.js';
-import { GeminiClient } from './packages/core/src/core/client.js';
-import { Content, FunctionCall, Part } from '@google/genai';
+  ToolRegistry,
+  ToolCallRequestInfo,
+} from '../packages/core/dist/src/index.js';
+import { GeminiClient } from '../packages/core/dist/src/core/client.js';
+import {
+  Content,
+  FunctionCall,
+  Part,
+  GenerateContentResponse,
+} from '@google/genai';
+import { SessionMetrics } from '../packages/core/dist/src/telemetry/uiTelemetry.js';
 
-function getResponseText(resp: any): string | null {
+function getResponseText(resp: GenerateContentResponse): string | null {
   if (resp.candidates && resp.candidates.length > 0) {
     const candidate = resp.candidates[0];
     if (candidate.content && candidate.content.parts && candidate.content.parts.length > 0) {
       const part0 = candidate.content.parts[0];
       if (part0?.thought) return null;
       return candidate.content.parts
-        .filter((p: any) => p.text)
-        .map((p: any) => p.text)
+        .filter((p: Part) => (p as Part).text)
+        .map((p: Part) => (p as Part).text as string)
         .join('');
     }
   }
@@ -71,13 +84,13 @@ async function runSequentialPrompt(
   }
 }
 
-function cloneMetrics(m: any) {
-  return JSON.parse(JSON.stringify(m));
+function cloneMetrics<T>(m: T): T {
+  return JSON.parse(JSON.stringify(m)) as T;
 }
 
-function diffMetrics(before: any, after: any) {
-  const sumTokens = (metrics: any) => {
-    return Object.values(metrics.models).reduce((acc: any, mod: any) => acc + mod.tokens.total, 0);
+function diffMetrics(before: SessionMetrics, after: SessionMetrics) {
+  const sumTokens = (metrics: SessionMetrics) => {
+    return Object.values(metrics.models).reduce((acc, mod) => acc + mod.tokens.total, 0);
   };
   return sumTokens(after) - sumTokens(before);
 }
