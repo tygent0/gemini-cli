@@ -1,3 +1,9 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { DAG, LLMNode, ToolNode, Scheduler } from 'tygent';
 import { GeminiClient } from '../core/client.js';
 import { ToolRegistry, ToolCallRequestInfo, ToolResult } from '../index.js';

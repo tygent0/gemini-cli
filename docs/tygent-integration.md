@@ -55,3 +55,19 @@ echo "Generate README" | gemini --tygent
 
 When enabled, tool calls requested by Gemini are executed in parallel
 using the optimized DAG.
+
+## Benchmark
+
+A simple benchmark script is provided to compare latency and token
+consumption with and without Tygent. Build the packages first and then
+run the script using `ts-node`:
+
+```bash
+npm run build
+node --loader ts-node/esm benchmark/tygent-benchmark.ts
+```
+
+Ensure the `GEMINI_API_KEY` environment variable is set before running.
+
+See [tygent-benchmark.md](./tygent-benchmark.md) for more details on running
+the benchmark.

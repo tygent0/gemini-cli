@@ -1,3 +1,9 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { GeminiClient } from '../core/client.js';
 import { ToolRegistry, ToolCallRequestInfo } from '../index.js';
 import { TygentScheduler } from './tygentScheduler.js';
@@ -17,7 +23,7 @@ export async function runPromptWithTools(
   client: GeminiClient,
   registry: ToolRegistry,
   prompt: string,
-  signal: AbortSignal = new AbortController().signal,
+  _signal: AbortSignal = new AbortController().signal,
 ): Promise<string> {
   const scheduler = new TygentScheduler(client, registry);
   const llmNode = scheduler.addLLMCall(prompt);
