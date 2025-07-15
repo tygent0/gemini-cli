@@ -231,9 +231,8 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
 2.  If not found, it searches upwards in parent directories until it finds an `.env` file or reaches the project root (identified by a `.git` folder) or the home directory.
 3.  If still not found, it looks for `~/.env` (in the user's home directory).
 
-- **`GEMINI_API_KEY`** (Required):
-  - Your API key for the Gemini API.
-  - **Crucial for operation.** The CLI will not function without it.
+- **`GEMINI_API_KEY`** (Optional):
+  - API key for the Gemini API. Provide it to unlock higher limits or paid features.
   - Set this in your shell profile (e.g., `~/.bashrc`, `~/.zshrc`) or an `.env` file.
 - **`GEMINI_MODEL`**:
   - Specifies the default Gemini model to use.

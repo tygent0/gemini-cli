@@ -67,7 +67,7 @@ npm run build
 node --loader ts-node/esm benchmark/tygent-benchmark.ts
 ```
 
-Ensure the `GEMINI_API_KEY` environment variable is set before running.
+If you have a `GEMINI_API_KEY`, export it before running for higher limits.
 
 See [tygent-benchmark.md](./tygent-benchmark.md) for more details on running
 the benchmark.

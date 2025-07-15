@@ -40,7 +40,7 @@ You are now ready to use the Gemini CLI!
 
 ### For advanced use or increased limits:
 
-If you need to use a specific model or require a higher request capacity, you can use an API key:
+If you need higher limits or want to target a specific model, you can provide an optional API key:
 
 1. Generate a key from [Google AI Studio](https://aistudio.google.com/apikey).
 2. Set it as an environment variable in your terminal. Replace `YOUR_API_KEY` with your generated key.

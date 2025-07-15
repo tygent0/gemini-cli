@@ -8,7 +8,7 @@ Tygent scheduler that executes tools in parallel.
 ## Prerequisites
 
 - Node.js 18 or later
-- A valid `GEMINI_API_KEY`
+- (Optional) `GEMINI_API_KEY` for higher request limits
 
 ## Steps
 
