@@ -64,7 +64,7 @@ run the script using `ts-node`:
 
 ```bash
 npm run build
-node --loader ts-node/esm benchmark/tygent-benchmark.ts
+npx ts-node benchmark/tygent-benchmark.ts
 ```
 
 If you have a `GEMINI_API_KEY`, export it before running for higher limits.

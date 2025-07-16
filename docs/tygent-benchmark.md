@@ -22,7 +22,7 @@ Tygent scheduler that executes tools in parallel.
    ```
 3. **Run the benchmark**
    ```bash
-   node --loader ts-node/esm benchmark/tygent-benchmark.ts
+   npx ts-node benchmark/tygent-benchmark.ts
    ```
 
 The script will run a set of sample prompts twice – once with Tygent disabled and
