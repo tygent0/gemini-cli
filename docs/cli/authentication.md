@@ -26,9 +26,9 @@ The Gemini CLI requires you to authenticate with Google's AI services. On initia
       source ~/.bashrc
       ```
 
-2.  **<a id="gemini-api-key"></a>Gemini API key:**
-    - Obtain your API key from Google AI Studio: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
-    - Set the `GEMINI_API_KEY` environment variable. In the following methods, replace `YOUR_GEMINI_API_KEY` with the API key you obtained from Google AI Studio:
+2.  **<a id="gemini-api-key"></a>Gemini API key (optional):**
+    - Obtain a key from Google AI Studio if you need higher usage limits: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+    - Set the `GEMINI_API_KEY` environment variable. In the following methods, replace `YOUR_GEMINI_API_KEY` with the API key you obtained:
       - You can temporarily set the environment variable in your current shell session using the following command:
         ```bash
         export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
@@ -105,6 +105,6 @@ echo 'GOOGLE_CLOUD_PROJECT="your-project-id"' >> .gemini/.env
 mkdir -p ~/.gemini
 cat >> ~/.gemini/.env <<'EOF'
 GOOGLE_CLOUD_PROJECT="your-project-id"
-GEMINI_API_KEY="your-gemini-api-key"
+GEMINI_API_KEY="your-gemini-api-key" # optional
 EOF
 ```

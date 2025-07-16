@@ -32,13 +32,11 @@ describe('AuthDialog', () => {
       <AuthDialog
         onSelect={() => {}}
         settings={settings}
-        initialErrorMessage="GEMINI_API_KEY  environment variable not found"
+        initialErrorMessage="Invalid auth method"
       />,
     );
 
-    expect(lastFrame()).toContain(
-      'GEMINI_API_KEY  environment variable not found',
-    );
+    expect(lastFrame()).toContain('Invalid auth method');
   });
 
   it('should prevent exiting when no auth method is selected and show error message', async () => {
