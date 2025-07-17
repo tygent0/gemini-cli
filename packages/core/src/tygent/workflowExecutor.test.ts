@@ -3,12 +3,13 @@ import { runPromptWithTools } from './workflowExecutor.js';
 import type { GeminiClient } from '../core/client.js';
 import type { ToolRegistry } from '../index.js';
 import type { GenerateContentResponse } from '@google/genai';
+import { FinishReason } from '@google/genai';
 
 const mockResponse: GenerateContentResponse = {
   candidates: [
     {
       content: { parts: [{ text: 'hello' }], role: 'model' },
-      finishReason: 'STOP',
+      finishReason: FinishReason.STOP,
       index: 0,
       safetyRatings: [],
     },
