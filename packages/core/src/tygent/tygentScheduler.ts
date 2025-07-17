@@ -7,6 +7,17 @@
 import { DAG, LLMNode, ToolNode, Scheduler } from 'tygent';
 import { GeminiClient } from '../core/client.js';
 import { ToolRegistry, ToolCallRequestInfo, ToolResult } from '../index.js';
+import {
+  logApiRequest,
+  logApiResponse,
+  logApiError,
+} from '../telemetry/loggers.js';
+import {
+  ApiRequestEvent,
+  ApiResponseEvent,
+  ApiErrorEvent,
+} from '../telemetry/types.js';
+import { getStructuredResponse } from '../utils/generateContentResponseUtilities.js';
 
 export type TygentNodeResult = {
   name: string;
@@ -42,12 +53,36 @@ export class TygentScheduler {
     const node = new LLMNode(name);
     node.setDependencies(dependsOn);
     node.execute = async () => {
-      const resp = await this.client.generateContent(
-        [{ role: 'user', parts: [{ text: prompt }] }],
-        {},
-        AbortSignal.timeout(300000),
-      );
-      return resp;
+      const config = this.client.getConfig();
+      logApiRequest(config, new ApiRequestEvent(config.getModel(), prompt));
+      const startTime = Date.now();
+      try {
+        const resp = await this.client.generateContent(
+          [{ role: 'user', parts: [{ text: prompt }] }],
+          {},
+          AbortSignal.timeout(300000),
+        );
+        const durationMs = Date.now() - startTime;
+        logApiResponse(
+          config,
+          new ApiResponseEvent(
+            config.getModel(),
+            durationMs,
+            resp.usageMetadata,
+            getStructuredResponse(resp),
+          ),
+        );
+        return resp;
+      } catch (error) {
+        const durationMs = Date.now() - startTime;
+        const message = error instanceof Error ? error.message : String(error);
+        const type = error instanceof Error ? error.name : 'unknown';
+        logApiError(
+          config,
+          new ApiErrorEvent(config.getModel(), message, durationMs, type),
+        );
+        throw error;
+      }
     };
     this.dag.addNode(node);
     return name;
