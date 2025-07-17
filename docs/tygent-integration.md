@@ -67,7 +67,14 @@ npm run build
 node --loader ts-node/esm benchmark/tygent-benchmark.ts
 ```
 
-If you have a `GEMINI_API_KEY`, export it before running for higher limits.
+Ensure you are authenticated before running the benchmark. You can either log in
+with your Google account or provide a `GEMINI_API_KEY`. To use an API key,
+generate one from [Google AI Studio](https://aistudio.google.com/app/apikey) and
+export it:
+
+```bash
+export GEMINI_API_KEY="YOUR_API_KEY"
+```
 
 See [tygent-benchmark.md](./tygent-benchmark.md) for more details on running
 the benchmark.
