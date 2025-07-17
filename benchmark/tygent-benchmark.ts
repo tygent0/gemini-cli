@@ -5,6 +5,7 @@
  */
 
 import { randomUUID } from 'crypto';
+import fs from 'node:fs';
 import {
   Config,
   DEFAULT_GEMINI_MODEL,
@@ -23,6 +24,22 @@ import {
   GenerateContentResponse,
 } from '@google/genai';
 import { SessionMetrics } from '../packages/core/dist/src/telemetry/uiTelemetry.js';
+
+const outIndex = process.argv.indexOf('--out');
+let outStream: fs.WriteStream | undefined;
+if (outIndex !== -1) {
+  const outPath = process.argv[outIndex + 1];
+  if (!outPath) {
+    console.error('Error: --out requires a file path');
+    process.exit(1);
+  }
+  outStream = fs.createWriteStream(outPath, { flags: 'w' });
+}
+
+function log(message: string) {
+  console.log(message);
+  if (outStream) outStream.write(message + '\n');
+}
 
 function getResponseText(resp: GenerateContentResponse): string | null {
   if (resp.candidates && resp.candidates.length > 0) {
@@ -117,7 +134,7 @@ async function runBenchmark() {
   ];
 
   for (const useTygent of [false, true]) {
-    console.log(`\nRunning with${useTygent ? '' : 'out'} Tygent`);
+    log(`\nRunning with${useTygent ? '' : 'out'} Tygent`);
     for (const task of tasks) {
       const config = await createConfig(useTygent);
       const client = config.getGeminiClient();
@@ -130,13 +147,17 @@ async function runBenchmark() {
       const duration = Date.now() - start;
       const metricsAfter = uiTelemetryService.getMetrics();
       const tokens = diffMetrics(metricsBefore, metricsAfter);
-      console.log(`Task ${task.name}: ${duration}ms, ${tokens} tokens`);
-      if (text) console.log(text.slice(0, 60).replace(/\n/g, ' '));
+      log(`Task ${task.name}: ${duration}ms, ${tokens} tokens`);
+      if (text) log(text.slice(0, 60).replace(/\n/g, ' '));
     }
   }
 }
 
-runBenchmark().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+runBenchmark()
+  .catch((err) => {
+    console.error(err);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    if (outStream) outStream.end();
+  });
