@@ -5,6 +5,7 @@ import type { ToolRegistry } from '../index.js';
 import type { GenerateContentResponse } from '@google/genai';
 import { FinishReason } from '@google/genai';
 
+
 const mockResponse: GenerateContentResponse = {
   candidates: [
     {
