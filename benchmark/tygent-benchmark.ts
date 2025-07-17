@@ -15,7 +15,7 @@ import {
   uiTelemetryService,
   ToolRegistry,
   ToolCallRequestInfo,
-} from '../packages/core/dist/src/index.js';
+} from '../packages/core/dist/index.js';
 import { GeminiClient } from '../packages/core/dist/src/core/client.js';
 import {
   Content,
