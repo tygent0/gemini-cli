@@ -9,16 +9,16 @@ Tygent scheduler that executes tools in parallel.
 
 - Node.js 18 or later
 - Authentication configured. You can either log in with your Google account or
-   provide a `GEMINI_API_KEY`:
-   - **Login with Google:** run `gemini` and follow the browser prompt. The
-     credentials are cached locally for reuse.
-   - **API key:** generate one from
-     [Google AI Studio](https://aistudio.google.com/app/apikey) and export it
-     before running the benchmark:
+  provide a `GEMINI_API_KEY`:
+  - **Login with Google:** run `gemini` and follow the browser prompt. The
+    credentials are cached locally for reuse.
+  - **API key:** generate one from
+    [Google AI Studio](https://aistudio.google.com/app/apikey) and export it
+    before running the benchmark:
 
-     ```bash
-     export GEMINI_API_KEY="YOUR_API_KEY"
-     ```
+    ```bash
+    export GEMINI_API_KEY="YOUR_API_KEY"
+    ```
 
 ## Steps
 
@@ -32,8 +32,10 @@ Tygent scheduler that executes tools in parallel.
    ```
 3. **Run the benchmark**
    ```bash
-   node --loader ts-node/esm benchmark/tygent-benchmark.ts
+   node --loader ts-node/esm benchmark/tygent-benchmark.ts [--out results.txt]
    ```
+   Use the optional `--out` flag to write the output to a file in addition to
+   printing to the console.
 
 If the script fails with an error such as `Could not load the default
 credentials`, it means no credentials were found. Either log in with Google or

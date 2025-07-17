@@ -64,7 +64,7 @@ run the script using `ts-node`:
 
 ```bash
 npm run build
-node --loader ts-node/esm benchmark/tygent-benchmark.ts
+node --loader ts-node/esm benchmark/tygent-benchmark.ts [--out results.txt]
 ```
 
 Ensure you are authenticated before running the benchmark. You can either log in
