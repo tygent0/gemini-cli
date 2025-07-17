@@ -25,21 +25,14 @@ export async function runPromptWithTools(
   prompt: string,
   _signal: AbortSignal = new AbortController().signal,
 ): Promise<string> {
-  // First run the LLM call directly to discover tool invocations.
-  const initialResp = await client.generateContent(
-    [{ role: 'user', parts: [{ text: prompt }] }],
-    {},
-    _signal,
-  );
-
-  const functionCalls: FunctionCall[] = getFunctionCalls(initialResp) ?? [];
-  // If no tools are required, return the initial response text immediately.
-  if (functionCalls.length === 0) {
-    return getResponseText(initialResp) ?? String(initialResp);
-  }
-
-  // Build a scheduler for the tool executions and follow up LLM call.
   const scheduler = new TygentScheduler(client, registry);
+  const llmNode = scheduler.addLLMCall(prompt);
+
+  // Run the initial LLM call to discover required tool invocations.
+  const firstResults = (await scheduler.run())[llmNode] as GenerateContentResponse;
+  const functionCalls: FunctionCall[] =
+    getFunctionCalls(firstResults) ?? [];
+
   const toolNodeNames: string[] = [];
   for (const fc of functionCalls) {
     const request: ToolCallRequestInfo = {
@@ -48,11 +41,15 @@ export async function runPromptWithTools(
       args: (fc.args ?? {}) as Record<string, unknown>,
       isClientInitiated: false,
     };
-    const nodeName = scheduler.addToolCall(request);
+    const nodeName = scheduler.addToolCall(request, [llmNode]);
     toolNodeNames.push(nodeName);
   }
 
-  const finalNode = scheduler.addLLMCall('continue', toolNodeNames);
+  let finalNode = llmNode;
+  if (toolNodeNames.length) {
+    // Add a follow up LLM call that depends on all tools finishing.
+    finalNode = scheduler.addLLMCall('continue', toolNodeNames);
+  }
 
   const results = await scheduler.run();
   const finalResp = results[finalNode] as GenerateContentResponse;
