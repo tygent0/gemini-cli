@@ -72,6 +72,13 @@ export class GeminiClient {
     this.chat = await this.startChat();
   }
 
+  /**
+   * Returns the configuration used to initialize this client.
+   */
+  getConfig(): Config {
+    return this.config;
+  }
+
   getContentGenerator(): ContentGenerator {
     if (!this.contentGenerator) {
       throw new Error('Content generator not initialized');
