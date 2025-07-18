@@ -46,10 +46,11 @@ fallback.
 
 ## CLI Usage
 
-In non-interactive mode you can enable the Tygent scheduler with the
-`--tygent` flag:
+You can enable the Tygent scheduler at runtime with the `--tygent` flag.
+This works in both interactive and non-interactive modes:
 
 ```
+gemini --tygent
 echo "Generate README" | gemini --tygent
 ```
 
@@ -77,4 +78,8 @@ export GEMINI_API_KEY="YOUR_API_KEY"
 ```
 
 See [tygent-benchmark.md](./tygent-benchmark.md) for more details on running
-the benchmark.
+the benchmark. For a quick interactive comparison you can run:
+
+```bash
+node --loader ts-node/esm benchmark/tygent-interactive-example.ts
+```
