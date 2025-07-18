@@ -3,10 +3,11 @@ import { runPromptWithTools } from './workflowExecutor.js';
 import type { GeminiClient } from '../core/client.js';
 import type { ToolRegistry } from '../index.js';
 import type { GenerateContentResponse } from '@google/genai';
+import type { Config } from '../config/config.js';
 import { FinishReason } from '@google/genai';
 
 
-const mockResponse: GenerateContentResponse = {
+const mockResponse = {
   candidates: [
     {
       content: { parts: [{ text: 'hello' }], role: 'model' },
@@ -16,12 +17,21 @@ const mockResponse: GenerateContentResponse = {
     },
   ],
   promptFeedback: { safetyRatings: [] },
-};
+} as unknown as GenerateContentResponse;
 
 describe('runPromptWithTools', () => {
   it('performs only one LLM call when no tools are requested', async () => {
     const generateContent = vi.fn().mockResolvedValue(mockResponse);
-    const client = { generateContent } as unknown as GeminiClient;
+    const config = {
+      getModel: () => 'fake-model',
+      getSessionId: () => 'session',
+      getUsageStatisticsEnabled: () => false,
+      getTelemetryLogPromptsEnabled: () => false,
+    } as unknown as Config;
+    const client = {
+      generateContent,
+      getConfig: () => config,
+    } as unknown as GeminiClient;
     const registry = {} as ToolRegistry;
 
     const result = await runPromptWithTools(client, registry, 'hello');

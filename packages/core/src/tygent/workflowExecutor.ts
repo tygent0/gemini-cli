@@ -7,11 +7,21 @@
 import { GeminiClient } from '../core/client.js';
 import { ToolRegistry, ToolCallRequestInfo } from '../index.js';
 import { TygentScheduler } from './tygentScheduler.js';
+import { FunctionCall, GenerateContentResponse } from '@google/genai';
 import {
-  FunctionCall,
-  GenerateContentResponse,
-} from '@google/genai';
-import { getResponseText, getFunctionCalls } from '../utils/generateContentResponseUtilities.js';
+  getResponseText,
+  getFunctionCalls,
+} from '../utils/generateContentResponseUtilities.js';
+import {
+  logApiRequest,
+  logApiResponse,
+  logApiError,
+} from '../telemetry/loggers.js';
+import {
+  ApiErrorEvent,
+  ApiRequestEvent,
+  ApiResponseEvent,
+} from '../telemetry/types.js';
 
 /**
  * Executes a single prompt using Tygent to orchestrate the LLM call and any
@@ -25,12 +35,37 @@ export async function runPromptWithTools(
   prompt: string,
   _signal: AbortSignal = new AbortController().signal,
 ): Promise<string> {
+  const config = client.getConfig();
   // First run the LLM call directly to discover tool invocations.
-  const initialResp = await client.generateContent(
-    [{ role: 'user', parts: [{ text: prompt }] }],
-    {},
-    _signal,
-  );
+  logApiRequest(config, new ApiRequestEvent(config.getModel(), prompt));
+  const startTime = Date.now();
+  let initialResp: GenerateContentResponse;
+  try {
+    initialResp = await client.generateContent(
+      [{ role: 'user', parts: [{ text: prompt }] }],
+      {},
+      _signal,
+    );
+    const durationMs = Date.now() - startTime;
+    logApiResponse(
+      config,
+      new ApiResponseEvent(
+        config.getModel(),
+        durationMs,
+        initialResp.usageMetadata,
+        getResponseText(initialResp),
+      ),
+    );
+  } catch (error) {
+    const durationMs = Date.now() - startTime;
+    const message = error instanceof Error ? error.message : String(error);
+    const type = error instanceof Error ? error.name : 'unknown';
+    logApiError(
+      config,
+      new ApiErrorEvent(config.getModel(), message, durationMs, type),
+    );
+    throw error;
+  }
 
   const functionCalls: FunctionCall[] = getFunctionCalls(initialResp) ?? [];
   // If no tools are required, return the initial response text immediately.
