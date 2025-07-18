@@ -24,6 +24,7 @@ import {
   ThoughtSummary,
   UnauthorizedError,
   UserPromptEvent,
+  runPromptWithTools,
 } from '@google/gemini-cli-core';
 import { type Part, type PartListUnion } from '@google/genai';
 import {
@@ -402,7 +403,7 @@ export const useGeminiStream = (
           type: MessageType.ERROR,
           text: parseAndFormatApiError(
             eventValue.error,
-            config.getContentGeneratorConfig().authType,
+            config.getContentGeneratorConfig?.().authType,
           ),
         },
         userMessageTimestamp,
@@ -514,20 +515,45 @@ export const useGeminiStream = (
       setInitError(null);
 
       try {
-        const stream = geminiClient.sendMessageStream(queryToSend, abortSignal);
-        const processingStatus = await processGeminiStreamEvents(
-          stream,
-          userMessageTimestamp,
-          abortSignal,
-        );
+        if (config.isTygentEnabled?.()) {
+          const registry = await config.getToolRegistry();
+          let plainQuery = '';
+          if (typeof queryToSend === 'string') {
+            plainQuery = queryToSend;
+          } else if (Array.isArray(queryToSend)) {
+            plainQuery = queryToSend
+              .map((p) => (typeof p === 'string' ? p : (p as Part).text || ''))
+              .join('');
+          }
+          const text = await runPromptWithTools(
+            geminiClient,
+            registry,
+            plainQuery,
+            abortSignal,
+          );
+          if (text) {
+            addItem({ type: MessageType.GEMINI, text }, userMessageTimestamp);
+          }
+          if (pendingHistoryItemRef.current) {
+            addItem(pendingHistoryItemRef.current, userMessageTimestamp);
+            setPendingHistoryItem(null);
+          }
+        } else {
+          const stream = geminiClient.sendMessageStream(queryToSend, abortSignal);
+          const processingStatus = await processGeminiStreamEvents(
+            stream,
+            userMessageTimestamp,
+            abortSignal,
+          );
 
-        if (processingStatus === StreamProcessingStatus.UserCancelled) {
-          return;
-        }
+          if (processingStatus === StreamProcessingStatus.UserCancelled) {
+            return;
+          }
 
-        if (pendingHistoryItemRef.current) {
-          addItem(pendingHistoryItemRef.current, userMessageTimestamp);
-          setPendingHistoryItem(null);
+          if (pendingHistoryItemRef.current) {
+            addItem(pendingHistoryItemRef.current, userMessageTimestamp);
+            setPendingHistoryItem(null);
+          }
         }
       } catch (error: unknown) {
         if (error instanceof UnauthorizedError) {
@@ -538,7 +564,7 @@ export const useGeminiStream = (
               type: MessageType.ERROR,
               text: parseAndFormatApiError(
                 getErrorMessage(error) || 'Unknown error',
-                config.getContentGeneratorConfig().authType,
+                config.getContentGeneratorConfig?.().authType,
               ),
             },
             userMessageTimestamp,
@@ -560,6 +586,7 @@ export const useGeminiStream = (
       geminiClient,
       onAuthError,
       config,
+      runPromptWithTools,
     ],
   );
 
