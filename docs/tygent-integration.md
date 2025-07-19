@@ -82,4 +82,7 @@ the benchmark. For a quick interactive comparison you can run:
 
 ```bash
 node --loader ts-node/esm benchmark/tygent-interactive-example.ts
+
+The script now runs in a loop using the Gemini CLI interface. Enter `/clear` to
+clear the screen or `/exit` to quit.
 ```

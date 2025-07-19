@@ -47,7 +47,9 @@ function getResponseText(response: GenerateContentResponse): string | null {
 export async function runNonInteractive(
   config: Config,
   input: string,
+  options?: { shutdownTelemetry?: boolean },
 ): Promise<void> {
+  const shouldShutdown = options?.shutdownTelemetry ?? true;
   // Handle EPIPE errors when the output is piped to a command that closes early.
   process.stdout.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EPIPE') {
@@ -69,7 +71,7 @@ export async function runNonInteractive(
     if (text) {
       process.stdout.write(text + '\n');
     }
-    if (isTelemetrySdkInitialized()) {
+    if (shouldShutdown && isTelemetrySdkInitialized()) {
       await shutdownTelemetry();
     }
     return;
@@ -166,7 +168,7 @@ export async function runNonInteractive(
     );
     process.exit(1);
   } finally {
-    if (isTelemetrySdkInitialized()) {
+    if (shouldShutdown && isTelemetrySdkInitialized()) {
       await shutdownTelemetry();
     }
   }
