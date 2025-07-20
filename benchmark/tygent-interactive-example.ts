@@ -39,7 +39,7 @@ async function run(prompt: string) {
     const config = await createConfig(useTygent);
     const metricsBefore = cloneMetrics(uiTelemetryService.getMetrics());
     const start = Date.now();
-    await runNonInteractive(config, prompt);
+    await runNonInteractive(config, prompt, { shutdownTelemetry: false });
     const duration = Date.now() - start;
     const metricsAfter = uiTelemetryService.getMetrics();
     const tokens = diffMetrics(metricsBefore, metricsAfter);
