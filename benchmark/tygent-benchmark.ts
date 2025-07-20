@@ -131,6 +131,12 @@ async function runBenchmark() {
     { name: 'simple', prompt: 'What is the capital of France?' },
     { name: 'medium', prompt: 'Summarize the contents of README.md in two sentences.' },
     { name: 'complex', prompt: 'Write a short poem about concurrency in JavaScript.' },
+    { name: 'code-basic', prompt: 'Write a Python function that returns the sum of two numbers.' },
+    { name: 'code-intermediate', prompt: 'Implement a recursive factorial function in JavaScript.' },
+    { name: 'code-advanced', prompt: 'Create a Node.js HTTP server that responds with "Hello, world!".' },
+    { name: 'code-doc', prompt: 'Write a JSDoc comment for a JavaScript function named multiply that returns the product of two numbers.' },
+    { name: 'code-tests', prompt: 'Create a Jest test for a function isPalindrome that checks if a string is a palindrome.' },
+    { name: 'code-debug', prompt: 'Fix the bug in this Python code: def add(a, b): return a - b' },
   ];
 
   for (const useTygent of [false, true]) {
