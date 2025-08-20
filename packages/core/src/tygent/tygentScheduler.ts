@@ -24,6 +24,14 @@ export type TygentNodeResult = {
   output: unknown;
 };
 
+export interface ExecutionEvent {
+  type: 'llm' | 'tool';
+  name: string;
+  context: string;
+  start: number;
+  end: number;
+}
+
 /**
  * Scheduler that builds a DAG of LLM calls and tool executions using
  * Tygent's optimizer. Each LLM call and tool execution becomes a node in
@@ -37,9 +45,14 @@ export class TygentScheduler {
   constructor(
     private client: GeminiClient,
     private toolRegistry: ToolRegistry,
+    private events?: ExecutionEvent[],
   ) {
     this.dag = new DAG('gemini_workflow');
     this.scheduler = new Scheduler(this.dag);
+  }
+
+  private recordEvent(event: ExecutionEvent) {
+    this.events?.push(event);
   }
 
   /**
@@ -82,6 +95,14 @@ export class TygentScheduler {
           new ApiErrorEvent(config.getModel(), message, durationMs, type),
         );
         throw error;
+      } finally {
+        this.recordEvent({
+          type: 'llm',
+          name,
+          context: prompt,
+          start: startTime,
+          end: Date.now(),
+        });
       }
     };
     this.dag.addNode(node);
@@ -101,11 +122,22 @@ export class TygentScheduler {
       throw new Error(`Tool ${request.name} not found`);
     }
     const node = new ToolNode(name, async () => {
-      const result: ToolResult = await tool.execute(
-        request.args,
-        AbortSignal.timeout(300000),
-      );
-      return result;
+      const startTime = Date.now();
+      try {
+        const result: ToolResult = await tool.execute(
+          request.args,
+          AbortSignal.timeout(300000),
+        );
+        return result;
+      } finally {
+        this.recordEvent({
+          type: 'tool',
+          name,
+          context: `${request.name} ${JSON.stringify(request.args)}`,
+          start: startTime,
+          end: Date.now(),
+        });
+      }
     });
     node.setDependencies(dependsOn);
     this.dag.addNode(node);
