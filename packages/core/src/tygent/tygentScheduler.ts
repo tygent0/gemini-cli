@@ -6,7 +6,11 @@
 
 import { DAG, LLMNode, ToolNode, Scheduler } from 'tygent';
 import { GeminiClient } from '../core/client.js';
-import { ToolRegistry, ToolCallRequestInfo, ToolResult } from '../index.js';
+import {
+  ToolRegistry,
+  ToolCallRequestInfo,
+  ToolCallResponseInfo,
+} from '../index.js';
 import {
   logApiRequest,
   logApiResponse,
@@ -18,6 +22,7 @@ import {
   ApiErrorEvent,
 } from '../telemetry/types.js';
 import { getStructuredResponse } from '../utils/generateContentResponseUtilities.js';
+import { executeToolCall } from '../core/nonInteractiveToolExecutor.js';
 
 export type TygentNodeResult = {
   name: string;
@@ -117,15 +122,13 @@ export class TygentScheduler {
    */
   addToolCall(request: ToolCallRequestInfo, dependsOn: string[] = []): string {
     const name = `tool_${request.callId}`;
-    const tool = this.toolRegistry.getTool(request.name);
-    if (!tool) {
-      throw new Error(`Tool ${request.name} not found`);
-    }
     const node = new ToolNode(name, async () => {
       const startTime = Date.now();
       try {
-        const result: ToolResult = await tool.execute(
-          request.args,
+        const result: ToolCallResponseInfo = await executeToolCall(
+          this.client.getConfig(),
+          request,
+          this.toolRegistry,
           AbortSignal.timeout(300000),
         );
         return result;

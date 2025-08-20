@@ -104,10 +104,63 @@ export async function runPromptWithTools(
     toolNodeNames.push(nodeName);
   }
 
-  const finalNode = scheduler.addLLMCall('continue', toolNodeNames);
+  const toolResults = await scheduler.run();
+  const toolParts: Part[] = [];
+  for (const nodeName of toolNodeNames) {
+    const res = toolResults[nodeName] as { responseParts?: Part | Part[] };
+    if (res?.responseParts) {
+      const parts = Array.isArray(res.responseParts)
+        ? res.responseParts
+        : [res.responseParts];
+      for (const part of parts) {
+        if (typeof part === 'string') toolParts.push({ text: part });
+        else if (part) toolParts.push(part);
+      }
+    }
+  }
 
-  const results = await scheduler.run();
-  const finalResp = results[finalNode] as GenerateContentResponse;
+  const followContext = toolParts
+    .map((p) => (p as Part).text ?? '')
+    .join(' ')
+    .slice(0, 100);
+  const followStart = Date.now();
+  logApiRequest(config, new ApiRequestEvent(config.getModel(), followContext));
+  let finalResp: GenerateContentResponse;
+  try {
+    finalResp = await client.generateContent(
+      [{ role: 'user', parts: toolParts }],
+      {},
+      _signal,
+    );
+    const durationMs = Date.now() - followStart;
+    logApiResponse(
+      config,
+      new ApiResponseEvent(
+        config.getModel(),
+        durationMs,
+        finalResp.usageMetadata,
+        getResponseText(finalResp),
+      ),
+    );
+  } catch (error) {
+    const durationMs = Date.now() - followStart;
+    const message = error instanceof Error ? error.message : String(error);
+    const type = error instanceof Error ? error.name : 'unknown';
+    logApiError(
+      config,
+      new ApiErrorEvent(config.getModel(), message, durationMs, type),
+    );
+    throw error;
+  } finally {
+    events?.push({
+      type: 'llm',
+      name: 'llm_0',
+      context: followContext,
+      start: followStart,
+      end: Date.now(),
+    });
+  }
+
   return getResponseText(finalResp) ?? String(finalResp);
 }
 
