@@ -50,7 +50,9 @@ export async function runPromptWithTools(
   try {
     initialResp = await client.generateContent(
       [{ role: 'user', parts: [{ text: prompt }] }],
-      {},
+      {
+        tools: [{ functionDeclarations: registry.getFunctionDeclarations() }],
+      },
       _signal,
     );
     const durationMs = Date.now() - startTime;
@@ -72,6 +74,14 @@ export async function runPromptWithTools(
       new ApiErrorEvent(config.getModel(), message, durationMs, type),
     );
     throw error;
+  } finally {
+    events?.push({
+      type: 'llm',
+      name: 'llm_plan',
+      context: prompt,
+      start: startTime,
+      end: Date.now(),
+    });
   }
 
   const functionCalls: FunctionCall[] = getFunctionCalls(initialResp) ?? [];

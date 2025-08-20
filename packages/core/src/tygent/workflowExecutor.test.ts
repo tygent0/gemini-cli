@@ -1,3 +1,9 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { describe, it, expect, vi } from 'vitest';
 import { runPromptWithTools } from './workflowExecutor.js';
 import type { GeminiClient } from '../core/client.js';
@@ -32,7 +38,9 @@ describe('runPromptWithTools', () => {
       generateContent,
       getConfig: () => config,
     } as unknown as GeminiClient;
-    const registry = {} as ToolRegistry;
+    const registry = {
+      getFunctionDeclarations: () => [],
+    } as unknown as ToolRegistry;
 
     const result = await runPromptWithTools(client, registry, 'hello');
 
