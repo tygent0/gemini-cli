@@ -80,9 +80,6 @@ async function createConfig(useTygent: boolean): Promise<Config> {
 
 async function runBenchmark() {
   const tasks = [
-    { name: 'simple', prompt: 'What is the capital of France?' },
-    { name: 'medium', prompt: 'Summarize the contents of README.md in two sentences.' },
-    { name: 'complex', prompt: 'Write a short poem about concurrency in JavaScript.' },
     { name: 'code-basic', prompt: 'Write a Python function that returns the sum of two numbers.' },
     { name: 'code-intermediate', prompt: 'Implement a recursive factorial function in JavaScript.' },
     { name: 'code-advanced', prompt: 'Create a Node.js HTTP server that responds with "Hello, world!".' },
