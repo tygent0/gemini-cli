@@ -6,8 +6,13 @@
 
 import { GeminiClient } from '../core/client.js';
 import { ToolRegistry, ToolCallRequestInfo } from '../index.js';
-import { TygentScheduler } from './tygentScheduler.js';
-import { FunctionCall, GenerateContentResponse } from '@google/genai';
+import { TygentScheduler, ExecutionEvent } from './tygentScheduler.js';
+import {
+  FunctionCall,
+  GenerateContentResponse,
+  Content,
+  Part,
+} from '@google/genai';
 import {
   getResponseText,
   getFunctionCalls,
@@ -22,6 +27,7 @@ import {
   ApiRequestEvent,
   ApiResponseEvent,
 } from '../telemetry/types.js';
+import { executeToolCall } from '../core/nonInteractiveToolExecutor.js';
 
 /**
  * Executes a single prompt using Tygent to orchestrate the LLM call and any
@@ -34,6 +40,7 @@ export async function runPromptWithTools(
   registry: ToolRegistry,
   prompt: string,
   _signal: AbortSignal = new AbortController().signal,
+  events?: ExecutionEvent[],
 ): Promise<string> {
   const config = client.getConfig();
   // First run the LLM call directly to discover tool invocations.
@@ -74,7 +81,7 @@ export async function runPromptWithTools(
   }
 
   // Build a scheduler for the tool executions and follow up LLM call.
-  const scheduler = new TygentScheduler(client, registry);
+  const scheduler = new TygentScheduler(client, registry, events);
   const toolNodeNames: string[] = [];
   for (const fc of functionCalls) {
     const request: ToolCallRequestInfo = {
@@ -92,4 +99,85 @@ export async function runPromptWithTools(
   const results = await scheduler.run();
   const finalResp = results[finalNode] as GenerateContentResponse;
   return getResponseText(finalResp) ?? String(finalResp);
+}
+
+/**
+ * Executes a prompt without using Tygent, running tool calls sequentially.
+ * Records LLM and tool timing events when an events array is provided.
+ */
+export async function runPromptSequentially(
+  client: GeminiClient,
+  registry: ToolRegistry,
+  prompt: string,
+  signal: AbortSignal = new AbortController().signal,
+  events?: ExecutionEvent[],
+): Promise<string> {
+  const chat = await client.getChat();
+  let currentMessages: Content[] = [{ role: 'user', parts: [{ text: prompt }] }];
+  let output = '';
+  let llmCount = 0;
+
+  while (true) {
+    const functionCalls: FunctionCall[] = [];
+    const llmName = `llm_${llmCount++}`;
+    const llmStart = Date.now();
+    const respStream = await chat.sendMessageStream({
+      message: currentMessages[0].parts || [],
+      config: {
+        abortSignal: signal,
+        tools: [{ functionDeclarations: registry.getFunctionDeclarations() }],
+      },
+    });
+    for await (const resp of respStream) {
+      if (signal.aborted) throw new Error('aborted');
+      const text = getResponseText(resp);
+      if (text) output += text;
+      if (resp.functionCalls) functionCalls.push(...resp.functionCalls);
+    }
+    const llmEnd = Date.now();
+    events?.push({
+      type: 'llm',
+      name: llmName,
+      context: (currentMessages[0].parts ?? [])
+        .map((p) => (p as Part).text ?? '')
+        .join(' '),
+      start: llmStart,
+      end: llmEnd,
+    });
+
+    if (functionCalls.length === 0) {
+      return output;
+    }
+
+    const toolParts: Part[] = [];
+    for (const fc of functionCalls) {
+      const request: ToolCallRequestInfo = {
+        callId: fc.id ?? `${fc.name}-${Date.now()}`,
+        name: fc.name ?? 'unknown_tool',
+        args: (fc.args ?? {}) as Record<string, unknown>,
+        isClientInitiated: false,
+      };
+      const toolStart = Date.now();
+      const result = await executeToolCall(client.getConfig(), request, registry, signal);
+      const toolEnd = Date.now();
+      events?.push({
+        type: 'tool',
+        name: `tool_${fc.name}`,
+        context: JSON.stringify(request.args),
+        start: toolStart,
+        end: toolEnd,
+      });
+      if (result.responseParts) {
+        const parts = Array.isArray(result.responseParts)
+          ? result.responseParts
+          : [result.responseParts];
+        for (const part of parts) {
+          if (typeof part === 'string') toolParts.push({ text: part });
+          else if (part) toolParts.push(part);
+        }
+      }
+    }
+
+    currentMessages = [{ role: 'user', parts: toolParts }];
+  }
 }
