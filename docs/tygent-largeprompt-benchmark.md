@@ -1,8 +1,11 @@
 # Tygent Large Prompt Benchmark
 
-This benchmark measures how Tygent handles very large prompt inputs. It runs
-four prompts ranging in size from 4KB to 4MB twice: once with the default
-sequential execution and once using the Tygent scheduler.
+This benchmark measures how Tygent handles very large prompt inputs. The
+prompts are assembled from tasks and code snippets pulled from popular GitHub
+repositories like React, VS Code, and TensorFlow. Four prompt sizes ranging from
+4KB to 4MB are executed twice: once with the default sequential execution and
+once using the Tygent scheduler.
+
 
 ## Prerequisites
 

@@ -6,6 +6,7 @@
 
 import { randomUUID } from 'crypto';
 import fs from 'node:fs';
+import https from 'node:https';
 import {
   Config,
   DEFAULT_GEMINI_MODEL,
@@ -63,10 +64,92 @@ function visualizeTimeline(events: ExecutionEvent[]) {
   }
 }
 
+interface RepoSource {
+  owner: string;
+  repo: string;
+  branch: string;
+  file: string;
+  task: string;
+}
+
+const repoSources: RepoSource[] = [
+  {
+    owner: 'facebook',
+    repo: 'react',
+    branch: 'main',
+    file: 'README.md',
+    task: 'Refactor the hooks implementation to support concurrent mode.',
+  },
+  {
+    owner: 'microsoft',
+    repo: 'vscode',
+    branch: 'main',
+    file: 'README.md',
+    task: 'Improve extension activation to reduce startup time.',
+  },
+  {
+    owner: 'tensorflow',
+    repo: 'tensorflow',
+    branch: 'master',
+    file: 'README.md',
+    task: 'Add support for a new hardware accelerator in the training pipeline.',
+  },
+];
+
+let repoSnippets: string[] = [];
+
+async function fetchText(url: string): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    https
+      .get(url, (res) => {
+        if (res.statusCode && res.statusCode >= 400) {
+          reject(new Error(`Request failed with status ${res.statusCode}`));
+          res.resume();
+          return;
+        }
+        let data = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        res.on('end', () => resolve(data));
+      })
+      .on('error', reject);
+  });
+}
+
+async function loadRepoSnippets() {
+  const snippets = await Promise.all(
+    repoSources.map(async (src) => {
+      try {
+        const url = `https://raw.githubusercontent.com/${src.owner}/${src.repo}/${src.branch}/${src.file}`;
+        const content = await fetchText(url);
+        return `Repository: ${src.owner}/${src.repo}\nTask: ${src.task}\n\n${content}`;
+      } catch (err) {
+        log(`Failed to fetch ${src.owner}/${src.repo}: ${String(err)}`);
+        return '';
+      }
+    })
+  );
+  repoSnippets = snippets.filter((s) => s.length > 0);
+  if (repoSnippets.length === 0) {
+    repoSnippets = ['Repository: example/example\nTask: Explore the codebase and write tests.'];
+  }
+}
+
 function buildPrompt(bytes: number): string {
-  const header = 'Respond with a short acknowledgement.';
-  const filler = 'A'.repeat(Math.max(0, bytes - header.length));
-  return header + filler;
+  const header = 'Respond with a short acknowledgement.\n\n';
+  const pieces = [header];
+  let i = 0;
+  while (pieces.join('').length < bytes) {
+    pieces.push(repoSnippets[i % repoSnippets.length] + '\n');
+    i++;
+  }
+  let prompt = pieces.join('');
+  if (prompt.length > bytes) {
+    prompt = prompt.slice(0, bytes);
+  }
+  return prompt;
 }
 
 async function createConfig(useTygent: boolean): Promise<Config> {
@@ -84,6 +167,7 @@ async function createConfig(useTygent: boolean): Promise<Config> {
 }
 
 async function runBenchmark() {
+  await loadRepoSnippets();
   const sizes = [
     { name: '4KB', bytes: 4 * 1024 },
     { name: '40KB', bytes: 40 * 1024 },
